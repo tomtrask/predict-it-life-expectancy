@@ -127,6 +127,11 @@ describeInterestingContracts = (symbols, marketMap) => {
     results.push(summary)
   })
 
+  results.sort((a,b) => {
+    console.log("a: "+JSON.stringify(a))
+    return a.probDaySurvival - b.probDaySurvival
+  })
+
   writer.pipe(fs.createWriteStream('results.csv'))
   results.forEach(summary => {
     writer.write(summary)
