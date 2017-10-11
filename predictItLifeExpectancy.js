@@ -1,9 +1,12 @@
 const predictIt = require('predict-it');
 const fs = require("fs")
 const moment = require("moment")
+const csvWriter = require('csv-write-stream')
 
 const JSON_FILE_NAME_ = "./predictit_markets.json"
+const CSV_DATE_FMT_ = "MM/DD/YYYY"
 const DECIMAL_TIME_FMT_ = "YYYYMMDDHHmmss"
+const PRETTY_DATE_FMT_ = "YYYY-MM-DD"
 const FRESHNESS_DATE_NAME_ = "freshUntil"
 
 const done = (msg) => {
@@ -70,13 +73,15 @@ const mergeNewMarkets = (fileSettings, newMarketData) => {
   fileSettings.marketAbstracts = marketAbstracts
 }
 
-const PRETTY_DATE_FMT_ = "YYYY-MM-DD"
 
 describeInterestingContracts = (symbols, marketMap) => {
+  const writer = csvWriter() 
   const now = moment()
   const withinThreeMonths = moment().add(3,"months")
   const withinSixMonths = moment().add(6,"months")
   const withinTwelveMonths = moment().add(12,"months")
+
+  const results = []
 
   symbols.forEach(symbol => {
     const market = marketMap[symbol]
@@ -89,6 +94,16 @@ describeInterestingContracts = (symbols, marketMap) => {
     const lifeExpectation = Math.log(0.5)/Math.log(dailySurvivalProb)
     const deathDate = moment().add(lifeExpectation, "day")
 
+    const summary = {
+      symbol: symbol,
+      contractEndDate: contractEndDate.format(CSV_DATE_FMT_),
+      daysRemaining: daysRemaining,
+      probContractSurvival: survivalProb,
+      probDaySurvival: dailySurvivalProb,
+      probWeekSurvival: weeklySurvivalProb,
+      deathDate: deathDate.format(CSV_DATE_FMT_)
+    }
+
     console.log("Contract: "+symbol)
     console.log("  Contract end: "+contractEndDate.format(PRETTY_DATE_FMT_))
     console.log("  Days remaining: "+daysRemaining)
@@ -96,14 +111,27 @@ describeInterestingContracts = (symbols, marketMap) => {
     console.log("  Weekly P(S): "+(100*weeklySurvivalProb).toFixed(1)+" %")
     console.log("  Life expectancy: "+deathDate.format(PRETTY_DATE_FMT_))
     if (deathDate < withinThreeMonths) {
+      summary.note = "WITHIN 3 MONTHS"
       console.log("  WITHIN 3 MONTHS")
     } else if (deathDate < withinSixMonths) {
+      summary.note = "WITHIN 6 MONTHS"
       console.log("  WITHIN 6 MONTHS")
     } else if (deathDate < withinTwelveMonths) {
+      summary.note = "WITHIN 12 MONTHS"
       console.log("  WITHIN 12 MONTHS")
     }
+    console.log(JSON.stringify(summary, {}, 4))
     console.log("")
+
+    results.push(summary)
   })
+
+  writer.pipe(fs.createWriteStream('results.csv'))
+  results.forEach(summary => {
+    writer.write(summary)
+  })
+  writer.end()
+  console.log("Results are inresults.csv")
 }
 
 const isSavedDatabaseIncomplete = (fileSettings) => {

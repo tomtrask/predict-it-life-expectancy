@@ -6,6 +6,7 @@
     "start": "node ./predictItLifeExpectancy.js"
   },
   "dependencies": {
+    "csv-write-stream": "^2.0.0",
     "moment": "^2.18.1",
     "predict-it": "^1.0.3"
   }

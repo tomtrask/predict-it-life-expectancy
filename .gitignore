@@ -1,3 +1,4 @@
 *.json
+*.csv
 node_modules
 !package.json
