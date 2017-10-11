@@ -94,6 +94,14 @@ describeInterestingContracts = (symbols, marketMap) => {
     const lifeExpectation = Math.log(0.5)/Math.log(dailySurvivalProb)
     const deathDate = moment().add(lifeExpectation, "day")
 
+    let note = ""
+    if (deathDate < withinThreeMonths) {
+      note = "WITHIN 3 MONTHS"
+    } else if (deathDate < withinSixMonths) {
+      note = "WITHIN 6 MONTHS"
+    } else if (deathDate < withinTwelveMonths) {
+      note = "WITHIN 12 MONTHS"
+    }
     const summary = {
       symbol: symbol,
       contractEndDate: contractEndDate.format(CSV_DATE_FMT_),
@@ -101,7 +109,8 @@ describeInterestingContracts = (symbols, marketMap) => {
       probContractSurvival: survivalProb,
       probDaySurvival: dailySurvivalProb,
       probWeekSurvival: weeklySurvivalProb,
-      deathDate: deathDate.format(CSV_DATE_FMT_)
+      deathDate: deathDate.format(CSV_DATE_FMT_),
+      note: note
     }
 
     console.log("Contract: "+symbol)
@@ -110,17 +119,9 @@ describeInterestingContracts = (symbols, marketMap) => {
     console.log("  Last trade: $"+contract.LastTradePrice)
     console.log("  Weekly P(S): "+(100*weeklySurvivalProb).toFixed(1)+" %")
     console.log("  Life expectancy: "+deathDate.format(PRETTY_DATE_FMT_))
-    if (deathDate < withinThreeMonths) {
-      summary.note = "WITHIN 3 MONTHS"
-      console.log("  WITHIN 3 MONTHS")
-    } else if (deathDate < withinSixMonths) {
-      summary.note = "WITHIN 6 MONTHS"
-      console.log("  WITHIN 6 MONTHS")
-    } else if (deathDate < withinTwelveMonths) {
-      summary.note = "WITHIN 12 MONTHS"
-      console.log("  WITHIN 12 MONTHS")
+    if (note) {
+      console.log("  "+note)
     }
-    console.log(JSON.stringify(summary, {}, 4))
     console.log("")
 
     results.push(summary)
