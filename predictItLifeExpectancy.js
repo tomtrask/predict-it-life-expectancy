@@ -154,7 +154,7 @@ describeInterestingContracts = (symbols, marketMap) => {
       symbol: symbol,
       contractEndDate: contractEndDate.format(CSV_DATE_FMT_),
       daysRemaining: daysRemaining,
-      probContractSurvival: Math.round(survivalProb, -6),
+      probContractSurvival: Math.round10(survivalProb, -2),
       probDaySurvival: Math.round10(dailySurvivalProb, -6),
       probWeekSurvival: Math.round10(weeklySurvivalProb, -6),
       lifeRemaining: Math.round(lifeExpectation,1),
