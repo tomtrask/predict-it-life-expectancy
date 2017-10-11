@@ -7,12 +7,60 @@ const JSON_FILE_NAME_ = "./predictit_markets.json"
 const CSV_DATE_FMT_ = "MM/DD/YYYY"
 const DECIMAL_TIME_FMT_ = "YYYYMMDDHHmmss"
 const PRETTY_DATE_FMT_ = "YYYY-MM-DD"
-const FRESHNESS_DATE_NAME_ = "freshUntil"
+const FRESHNESS_DATE_NAME_ = "freshUntil";
 
-const done = (msg) => {
-  console.log(msg)
-  process.exit()
-}
+// Closure
+(function() {
+  /**
+   * Decimal adjustment of a number.
+   *
+   * @param {String}  type  The type of adjustment.
+   * @param {Number}  value The number.
+   * @param {Integer} exp   The exponent (the 10 logarithm of the adjustment base).
+   * @returns {Number} The adjusted value.
+   */
+  function decimalAdjust(type, value, exp) {
+    // If the exp is undefined or zero...
+    if (typeof exp === 'undefined' || +exp === 0) {
+      return Math[type](value);
+    }
+    value = +value;
+    exp = +exp;
+    // If the value is not a number or the exp is not an integer...
+    if (value === null || isNaN(value) || !(typeof exp === 'number' && exp % 1 === 0)) {
+      return NaN;
+    }
+    // If the value is negative...
+    if (value < 0) {
+      return -decimalAdjust(type, -value, exp);
+    }
+    // Shift
+    value = value.toString().split('e');
+    value = Math[type](+(value[0] + 'e' + (value[1] ? (+value[1] - exp) : -exp)));
+    // Shift back
+    value = value.toString().split('e');
+    return +(value[0] + 'e' + (value[1] ? (+value[1] + exp) : exp));
+  }
+
+  // Decimal round
+  if (!Math.round10) {
+    Math.round10 = function(value, exp) {
+      return decimalAdjust('round', value, exp);
+    };
+  }
+  // Decimal floor
+  if (!Math.floor10) {
+    Math.floor10 = function(value, exp) {
+      return decimalAdjust('floor', value, exp);
+    };
+  }
+  // Decimal ceil
+  if (!Math.ceil10) {
+    Math.ceil10 = function(value, exp) {
+      return decimalAdjust('ceil', value, exp);
+    };
+  }
+})();
 
 const fetchMarketList = () => {
   return new Promise((resolve, reject) => {
@@ -106,30 +154,32 @@ describeInterestingContracts = (symbols, marketMap) => {
       symbol: symbol,
       contractEndDate: contractEndDate.format(CSV_DATE_FMT_),
       daysRemaining: daysRemaining,
-      probContractSurvival: survivalProb,
-      probDaySurvival: dailySurvivalProb,
-      probWeekSurvival: weeklySurvivalProb,
+      probContractSurvival: Math.round(survivalProb, -6),
+      probDaySurvival: Math.round10(dailySurvivalProb, -6),
+      probWeekSurvival: Math.round10(weeklySurvivalProb, -6),
+      lifeRemaining: Math.round(lifeExpectation,1),
       deathDate: deathDate.format(CSV_DATE_FMT_),
       note: note
     }
-
-    console.log("Contract: "+symbol)
-    console.log("  Contract end: "+contractEndDate.format(PRETTY_DATE_FMT_))
-    console.log("  Days remaining: "+daysRemaining)
-    console.log("  Last trade: $"+contract.LastTradePrice)
-    console.log("  Weekly P(S): "+(100*weeklySurvivalProb).toFixed(1)+" %")
-    console.log("  Life expectancy: "+deathDate.format(PRETTY_DATE_FMT_))
-    if (note) {
-      console.log("  "+note)
-    }
-    console.log("")
-
     results.push(summary)
   })
 
   results.sort((a,b) => {
-    console.log("a: "+JSON.stringify(a))
     return a.probDaySurvival - b.probDaySurvival
+  })
+
+  results.forEach(result => {
+    console.log("Contract: "+result.symbol)
+    console.log("  Contract end: "+result.contractEndDate)
+    console.log("  Days remaining: "+result.daysRemaining)
+    console.log("  Last trade: $"+result.probContractSurvival)
+    console.log("  Weekly P(S): "+(100*result.probWeekSurvival).toFixed(1)+" %")
+    console.log("  Life expectancy: "+result.deathDate)
+    if (result.note) {
+      console.log("  "+result.note)
+    }
+    console.log("")
+
   })
 
   writer.pipe(fs.createWriteStream('results.csv'))
