@@ -133,6 +133,10 @@ describeInterestingContracts = (symbols, marketMap) => {
 
   symbols.forEach(symbol => {
     const market = marketMap[symbol]
+    if (market === undefined) {
+      console.log("Expired market: "+symbol)
+      return
+    }
     const contract = market.Contracts[0]
     const contractEndDate = moment(contract.DateEnd)
     const daysRemaining = contractEndDate.diff(now, "days")+1
